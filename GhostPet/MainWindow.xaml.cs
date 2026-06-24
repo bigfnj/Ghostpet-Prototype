@@ -14,6 +14,7 @@ public partial class MainWindow : Window, IBehaviorContext
     private GhostConfig _config = new();
     private List<BehaviorBase> _behaviors = [];
     private DispatcherTimer _timer = new();
+    private DispatcherTimer _idleTimer = new();
     private WinForms.NotifyIcon _trayIcon = null!;
 
     public string GhostName => _config.GhostName;
@@ -39,8 +40,52 @@ public partial class MainWindow : Window, IBehaviorContext
             _trayIcon.ShowBalloonTip(3000, "GhostPet",
                 $"{GhostName} is here! Drag to move. Right-click tray or sprite for options.",
                 WinForms.ToolTipIcon.Info);
+            ScheduleNextIdle(initialDelay: true);
         };
     }
+
+    // ── Idle loop ────────────────────────────────────────────────────────────
+
+    // Reactive behaviors are excluded from the idle pool; they fire on triggers
+    private static readonly HashSet<string> _reactiveNames =
+        ["PetBehavior", "GiveUpBehavior"];
+
+    private void ScheduleNextIdle(bool initialDelay = false)
+    {
+        _idleTimer.Stop();
+        _idleTimer = new DispatcherTimer
+        {
+            // First trigger: 15-30s so the pet settles in before talking
+            // Subsequent: 60-120s for a natural, occasional cadence
+            Interval = initialDelay
+                ? TimeSpan.FromSeconds(Random.Shared.Next(15, 30))
+                : TimeSpan.FromSeconds(Random.Shared.Next(60, 120))
+        };
+        _idleTimer.Tick += OnIdleTick;
+        _idleTimer.Start();
+    }
+
+    private void OnIdleTick(object? sender, EventArgs e)
+    {
+        _idleTimer.Stop();
+
+        if (State == GhostState.Passive)
+        {
+            var pool = _behaviors
+                .Where(b => !_reactiveNames.Contains(BehaviorName(b) ?? ""))
+                .ToList();
+
+            if (pool.Count > 0)
+                Say(pool[Random.Shared.Next(pool.Count)]);
+        }
+
+        ScheduleNextIdle();
+    }
+
+    private static string? BehaviorName(BehaviorBase b) =>
+        b.GetType().GetCustomAttribute<BehaviorNameAttribute>()?.Name;
+
+    // ── Tray icon ────────────────────────────────────────────────────────────
 
     private void InitTrayIcon()
     {
@@ -75,6 +120,8 @@ public partial class MainWindow : Window, IBehaviorContext
 
     private void Quit()
     {
+        _idleTimer.Stop();
+        _timer.Stop();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
         Application.Current.Shutdown();
@@ -82,10 +129,13 @@ public partial class MainWindow : Window, IBehaviorContext
 
     protected override void OnClosed(EventArgs e)
     {
+        _idleTimer.Stop();
         _trayIcon.Visible = false;
         _trayIcon.Dispose();
         base.OnClosed(e);
     }
+
+    // ── Setup ────────────────────────────────────────────────────────────────
 
     private void LoadConfig()
     {
@@ -105,12 +155,10 @@ public partial class MainWindow : Window, IBehaviorContext
 
     private void SnapToRightCorner()
     {
-        // Find the rightmost monitor by working area right edge
         var screen = WinForms.Screen.AllScreens
             .OrderByDescending(s => s.WorkingArea.Right)
             .First();
 
-        // Screen gives physical pixels; WPF Left/Top are logical pixels
         var source = PresentationSource.FromVisual(this);
         double scaleX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         double scaleY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
@@ -118,6 +166,8 @@ public partial class MainWindow : Window, IBehaviorContext
         Left = screen.WorkingArea.Right / scaleX - Width;
         Top  = screen.WorkingArea.Bottom / scaleY - Height;
     }
+
+    // ── IBehaviorContext ─────────────────────────────────────────────────────
 
     public void Say(BehaviorBase behavior)
     {
@@ -190,11 +240,7 @@ public partial class MainWindow : Window, IBehaviorContext
     }
 
     public BehaviorBase? GetBehavior(string name) =>
-        _behaviors.FirstOrDefault(b =>
-            b.GetType()
-             .GetCustomAttributes(typeof(BehaviorNameAttribute), false)
-             .OfType<BehaviorNameAttribute>()
-             .FirstOrDefault()?.Name == name);
+        _behaviors.FirstOrDefault(b => BehaviorName(b) == name);
 
     public void Reset()
     {
@@ -202,6 +248,8 @@ public partial class MainWindow : Window, IBehaviorContext
         GhostPanel.Reset();
         State = GhostState.Passive;
     }
+
+    // ── Event handlers ───────────────────────────────────────────────────────
 
     private void OnChoiceSelected(object? sender, string? name)
     {
