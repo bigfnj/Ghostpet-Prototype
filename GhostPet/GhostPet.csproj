@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWpf>true</UseWpf>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>GhostPet</RootNamespace>
@@ -19,5 +20,16 @@
     <Resource Include="Resources\Diavlo.ttf" />
     <!-- JSON configs embedded so they survive single-file publish -->
     <Resource Include="Resources\behaviors\*.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Suppress WinForms global usings that clash with WPF types
+         (Application, UserControl, MouseEventArgs).
+         MainWindow.xaml.cs aliases System.Windows.Forms explicitly. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Drawing.Drawing2D" />
+    <Using Remove="System.Drawing.Imaging" />
+    <Using Remove="System.Drawing.Text" />
   </ItemGroup>
 </Project>

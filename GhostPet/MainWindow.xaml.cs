@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Threading;
 using GhostPet.Behaviors;
 using GhostPet.Models;
+using WinForms = System.Windows.Forms;
+using Drawing = System.Drawing;
 
 namespace GhostPet;
 
@@ -12,6 +14,7 @@ public partial class MainWindow : Window, IBehaviorContext
     private GhostConfig _config = new();
     private List<BehaviorBase> _behaviors = [];
     private DispatcherTimer _timer = new();
+    private WinForms.NotifyIcon _trayIcon = null!;
 
     public string GhostName => _config.GhostName;
     public string UserName => _config.UserName;
@@ -23,11 +26,59 @@ public partial class MainWindow : Window, IBehaviorContext
         LoadConfig();
         LoadBehaviors();
         PositionWindow();
+        InitTrayIcon();
 
         SpeakPanel.ChoiceSelected += OnChoiceSelected;
         GhostPanel.GhostMouseMoved += OnGhostMouseMoved;
         GhostPanel.TestTalkRequested += OnTestTalk;
-        GhostPanel.QuitRequested += (_, _) => Application.Current.Shutdown();
+        GhostPanel.QuitRequested += (_, _) => Quit();
+
+        Loaded += (_, _) => _trayIcon.ShowBalloonTip(
+            3000, "GhostPet", $"{GhostName} is here! Right-click the tray icon or the sprite to quit.", WinForms.ToolTipIcon.Info);
+    }
+
+    private void InitTrayIcon()
+    {
+        Drawing.Icon icon;
+        try
+        {
+            var uri = new Uri("pack://application:,,,/Resources/images/stand.png");
+            var info = Application.GetResourceStream(uri)!;
+            using var bmp = new Drawing.Bitmap(info.Stream);
+            using var resized = new Drawing.Bitmap(bmp, 32, 32);
+            icon = Drawing.Icon.FromHandle(resized.GetHicon());
+        }
+        catch
+        {
+            icon = Drawing.SystemIcons.Application;
+        }
+
+        var menu = new WinForms.ContextMenuStrip();
+        menu.Items.Add("Test Talk", null, (_, _) => OnTestTalk(null, EventArgs.Empty));
+        menu.Items.Add(new WinForms.ToolStripSeparator());
+        menu.Items.Add("Quit", null, (_, _) => Quit());
+
+        _trayIcon = new WinForms.NotifyIcon
+        {
+            Icon = icon,
+            Text = $"GhostPet — {GhostName}",
+            ContextMenuStrip = menu,
+            Visible = true
+        };
+    }
+
+    private void Quit()
+    {
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        Application.Current.Shutdown();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _trayIcon.Visible = false;
+        _trayIcon.Dispose();
+        base.OnClosed(e);
     }
 
     private void LoadConfig()
@@ -97,7 +148,7 @@ public partial class MainWindow : Window, IBehaviorContext
                     {
                         _timer.Stop();
                         Reset();
-                        Say(behavior); // step through the chain recursively
+                        Say(behavior);
                     };
                     _timer.Start();
                 }
