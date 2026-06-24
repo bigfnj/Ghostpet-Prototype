@@ -16,6 +16,9 @@ public partial class MainWindow : Window, IBehaviorContext
     private DispatcherTimer _timer = new();
     private DispatcherTimer _idleTimer = new();
     private WinForms.NotifyIcon _trayIcon = null!;
+    private AppSettings _settings = new();
+    private WinForms.ToolStripMenuItem[] _scaleItems = [];
+    private bool _savingPosition;
 
     public string GhostName => _config.GhostName;
     public string UserName => _config.UserName;
@@ -24,6 +27,7 @@ public partial class MainWindow : Window, IBehaviorContext
     public MainWindow()
     {
         InitializeComponent();
+        _settings = AppSettings.Load();
         LoadConfig();
         LoadBehaviors();
         InitTrayIcon();
@@ -36,7 +40,22 @@ public partial class MainWindow : Window, IBehaviorContext
 
         Loaded += (_, _) =>
         {
-            SnapToRightCorner();
+            GhostPanel.SetScale(_settings.SpriteScale);
+            UpdateLayout();
+
+            if (_settings.Left.HasValue && _settings.Top.HasValue)
+            {
+                Left = _settings.Left.Value;
+                Top  = _settings.Top.Value;
+                ClampToBounds();
+            }
+            else
+            {
+                SnapToRightCorner();
+            }
+
+            LocationChanged += OnLocationChanged;
+
             _trayIcon.ShowBalloonTip(3000, "GhostPet",
                 $"{GhostName} is here! Drag to move. Right-click tray or sprite for options.",
                 WinForms.ToolTipIcon.Info);
@@ -46,7 +65,6 @@ public partial class MainWindow : Window, IBehaviorContext
 
     // ── Idle loop ────────────────────────────────────────────────────────────
 
-    // Reactive behaviors are excluded from the idle pool; they fire on triggers
     private static readonly HashSet<string> _reactiveNames =
         ["PetBehavior", "GiveUpBehavior"];
 
@@ -55,8 +73,6 @@ public partial class MainWindow : Window, IBehaviorContext
         _idleTimer.Stop();
         _idleTimer = new DispatcherTimer
         {
-            // First trigger: 15-30s so the pet settles in before talking
-            // Subsequent: 60-120s for a natural, occasional cadence
             Interval = initialDelay
                 ? TimeSpan.FromSeconds(Random.Shared.Next(15, 30))
                 : TimeSpan.FromSeconds(Random.Shared.Next(60, 120))
@@ -85,6 +101,52 @@ public partial class MainWindow : Window, IBehaviorContext
     private static string? BehaviorName(BehaviorBase b) =>
         b.GetType().GetCustomAttribute<BehaviorNameAttribute>()?.Name;
 
+    // ── Scale ────────────────────────────────────────────────────────────────
+
+    private void ApplyScale(double scale)
+    {
+        double oldRight  = Left + ActualWidth;
+        double oldBottom = Top  + ActualHeight;
+
+        GhostPanel.SetScale(scale);
+
+        Dispatcher.BeginInvoke(() =>
+        {
+            Left = oldRight  - ActualWidth;
+            Top  = oldBottom - ActualHeight;
+            ClampToBounds();
+
+            _settings.SpriteScale = scale;
+            _settings.Save();
+
+            foreach (var item in _scaleItems)
+                item.Checked = item.Tag is double d && Math.Abs(d - scale) < 0.01;
+        });
+    }
+
+    // ── Position / bounds ────────────────────────────────────────────────────
+
+    private void OnLocationChanged(object? sender, EventArgs e)
+    {
+        if (_savingPosition) return;
+        _settings.Left = Left;
+        _settings.Top  = Top;
+        _settings.Save();
+    }
+
+    private void ClampToBounds()
+    {
+        double vsLeft   = SystemParameters.VirtualScreenLeft;
+        double vsTop    = SystemParameters.VirtualScreenTop;
+        double vsRight  = vsLeft + SystemParameters.VirtualScreenWidth;
+        double vsBottom = vsTop  + SystemParameters.VirtualScreenHeight;
+
+        _savingPosition = true;
+        Left = Math.Max(vsLeft, Math.Min(Left, vsRight  - ActualWidth));
+        Top  = Math.Max(vsTop,  Math.Min(Top,  vsBottom - ActualHeight));
+        _savingPosition = false;
+    }
+
     // ── Tray icon ────────────────────────────────────────────────────────────
 
     private void InitTrayIcon()
@@ -103,9 +165,27 @@ public partial class MainWindow : Window, IBehaviorContext
             icon = Drawing.SystemIcons.Application;
         }
 
+        var sizeMenu = new WinForms.ToolStripMenuItem("Size");
+        double[] scales = [0.75, 1.0, 1.5, 2.0];
+        string[] labels = ["Small (0.75×)", "Normal (1.0×)", "Large (1.5×)", "XL (2.0×)"];
+        _scaleItems = new WinForms.ToolStripMenuItem[scales.Length];
+        for (int i = 0; i < scales.Length; i++)
+        {
+            double s = scales[i];
+            var item = new WinForms.ToolStripMenuItem(labels[i])
+            {
+                Tag     = s,
+                Checked = Math.Abs(s - _settings.SpriteScale) < 0.01
+            };
+            item.Click += (_, _) => ApplyScale(s);
+            _scaleItems[i] = item;
+            sizeMenu.DropDownItems.Add(item);
+        }
+
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add("Test Talk", null, (_, _) => OnTestTalk(null, EventArgs.Empty));
         menu.Items.Add("Move Ghost", null, (_, _) => SnapToRightCorner());
+        menu.Items.Add(sizeMenu);
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Quit());
 
@@ -163,8 +243,8 @@ public partial class MainWindow : Window, IBehaviorContext
         double scaleX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
         double scaleY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
 
-        Left = screen.WorkingArea.Right / scaleX - Width;
-        Top  = screen.WorkingArea.Bottom / scaleY - Height;
+        Left = screen.WorkingArea.Right  / scaleX - ActualWidth;
+        Top  = screen.WorkingArea.Bottom / scaleY - ActualHeight;
     }
 
     // ── IBehaviorContext ─────────────────────────────────────────────────────

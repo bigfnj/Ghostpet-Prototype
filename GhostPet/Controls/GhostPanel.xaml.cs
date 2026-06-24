@@ -36,6 +36,12 @@ public partial class GhostPanel : UserControl
 
     public void Reset() => CharImage.Source = _standImage;
 
+    public void SetScale(double scale)
+    {
+        CharImage.Width  = Math.Round(108 * scale);
+        CharImage.Height = Math.Round(192 * scale);
+    }
+
     private void CharImage_MouseMove(object sender, MouseEventArgs e) =>
         GhostMouseMoved?.Invoke(this, EventArgs.Empty);
 
