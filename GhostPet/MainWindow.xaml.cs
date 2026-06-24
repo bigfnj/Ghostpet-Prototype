@@ -25,16 +25,21 @@ public partial class MainWindow : Window, IBehaviorContext
         InitializeComponent();
         LoadConfig();
         LoadBehaviors();
-        PositionWindow();
         InitTrayIcon();
 
         SpeakPanel.ChoiceSelected += OnChoiceSelected;
         GhostPanel.GhostMouseMoved += OnGhostMouseMoved;
         GhostPanel.TestTalkRequested += OnTestTalk;
+        GhostPanel.SnapToCornerRequested += (_, _) => SnapToRightCorner();
         GhostPanel.QuitRequested += (_, _) => Quit();
 
-        Loaded += (_, _) => _trayIcon.ShowBalloonTip(
-            3000, "GhostPet", $"{GhostName} is here! Right-click the tray icon or the sprite to quit.", WinForms.ToolTipIcon.Info);
+        Loaded += (_, _) =>
+        {
+            SnapToRightCorner();
+            _trayIcon.ShowBalloonTip(3000, "GhostPet",
+                $"{GhostName} is here! Drag to move. Right-click tray or sprite for options.",
+                WinForms.ToolTipIcon.Info);
+        };
     }
 
     private void InitTrayIcon()
@@ -55,6 +60,7 @@ public partial class MainWindow : Window, IBehaviorContext
 
         var menu = new WinForms.ContextMenuStrip();
         menu.Items.Add("Test Talk", null, (_, _) => OnTestTalk(null, EventArgs.Empty));
+        menu.Items.Add("Move Ghost", null, (_, _) => SnapToRightCorner());
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Quit());
 
@@ -97,11 +103,20 @@ public partial class MainWindow : Window, IBehaviorContext
 
     private void LoadBehaviors() => _behaviors = BehaviorRegistry.CreateAll(this);
 
-    private void PositionWindow()
+    private void SnapToRightCorner()
     {
-        var area = SystemParameters.WorkArea;
-        Left = area.Right - Width;
-        Top = area.Bottom - Height;
+        // Find the rightmost monitor by working area right edge
+        var screen = WinForms.Screen.AllScreens
+            .OrderByDescending(s => s.WorkingArea.Right)
+            .First();
+
+        // Screen gives physical pixels; WPF Left/Top are logical pixels
+        var source = PresentationSource.FromVisual(this);
+        double scaleX = source?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        double scaleY = source?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+
+        Left = screen.WorkingArea.Right / scaleX - Width;
+        Top  = screen.WorkingArea.Bottom / scaleY - Height;
     }
 
     public void Say(BehaviorBase behavior)

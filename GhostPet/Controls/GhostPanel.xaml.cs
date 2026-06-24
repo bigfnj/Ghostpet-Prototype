@@ -14,6 +14,7 @@ public partial class GhostPanel : UserControl
     public event EventHandler? GhostMouseMoved;
     public event EventHandler? TestTalkRequested;
     public event EventHandler? QuitRequested;
+    public event EventHandler? SnapToCornerRequested;
 
     public GhostPanel()
     {
@@ -38,8 +39,14 @@ public partial class GhostPanel : UserControl
     private void CharImage_MouseMove(object sender, MouseEventArgs e) =>
         GhostMouseMoved?.Invoke(this, EventArgs.Empty);
 
+    private void CharImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) =>
+        Window.GetWindow(this)?.DragMove();
+
     private void MenuTestTalk_Click(object sender, RoutedEventArgs e) =>
         TestTalkRequested?.Invoke(this, EventArgs.Empty);
+
+    private void MenuSnapToCorner_Click(object sender, RoutedEventArgs e) =>
+        SnapToCornerRequested?.Invoke(this, EventArgs.Empty);
 
     private void MenuQuit_Click(object sender, RoutedEventArgs e) =>
         QuitRequested?.Invoke(this, EventArgs.Empty);

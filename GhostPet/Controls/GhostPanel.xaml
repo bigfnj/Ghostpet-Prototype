@@ -6,10 +6,13 @@
            Stretch="None"
            RenderOptions.BitmapScalingMode="NearestNeighbor"
            Source="pack://application:,,,/Resources/images/stand.png"
-           MouseMove="CharImage_MouseMove">
+           Cursor="SizeAll"
+           MouseMove="CharImage_MouseMove"
+           MouseLeftButtonDown="CharImage_MouseLeftButtonDown">
         <Image.ContextMenu>
             <ContextMenu>
                 <MenuItem Header="Test Talk" Click="MenuTestTalk_Click"/>
+                <MenuItem Header="Snap to Corner" Click="MenuSnapToCorner_Click"/>
                 <Separator/>
                 <MenuItem Header="Quit" Click="MenuQuit_Click"/>
             </ContextMenu>
