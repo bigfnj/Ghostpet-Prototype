@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWpf>true</UseWpf>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>GhostPet</RootNamespace>
+    <AssemblyName>GhostPet</AssemblyName>
+    <!-- Single-file publish: user must have .NET 10 runtime installed -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Images and font bundled as WPF resources (pack:// URI accessible) -->
+    <Resource Include="Resources\images\**" />
+    <Resource Include="Resources\Diavlo.ttf" />
+    <!-- JSON configs embedded so they survive single-file publish -->
+    <Resource Include="Resources\behaviors\*.json" />
+  </ItemGroup>
+</Project>

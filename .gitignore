@@ -3,3 +3,13 @@
 
 # Ignore Gradle build output directory
 build
+
+# .NET build artifacts
+bin/
+obj/
+dist/
+
+# VS/Rider user files
+*.user
+.vs/
+.idea/

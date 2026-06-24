@@ -1,0 +1,18 @@
+<UserControl x:Class="GhostPet.Controls.GhostPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Image x:Name="CharImage"
+           Width="108" Height="192"
+           Stretch="None"
+           RenderOptions.BitmapScalingMode="NearestNeighbor"
+           Source="pack://application:,,,/Resources/images/stand.png"
+           MouseMove="CharImage_MouseMove">
+        <Image.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="Test Talk" Click="MenuTestTalk_Click"/>
+                <Separator/>
+                <MenuItem Header="Quit" Click="MenuQuit_Click"/>
+            </ContextMenu>
+        </Image.ContextMenu>
+    </Image>
+</UserControl>

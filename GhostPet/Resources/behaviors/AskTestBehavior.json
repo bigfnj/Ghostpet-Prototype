@@ -1,0 +1,18 @@
+{
+    "imageUsed": "speak.png",
+    "statements": [
+        "What can I do for you, $NAME$?",
+        "What do you need?"
+    ],
+    "actTime": 180,
+    "actStatements": [
+        "Pet just to test",
+        "Never mind",
+        "Cancel"
+    ],
+    "BehaviorList": [
+        "PetBehavior",
+        "GiveUpBehavior",
+        "GiveUpBehavior"
+    ]
+}

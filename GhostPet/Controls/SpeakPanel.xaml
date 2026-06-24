@@ -1,0 +1,34 @@
+<UserControl x:Class="GhostPet.Controls.SpeakPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="200" Height="300"
+             Visibility="Collapsed">
+    <Grid>
+        <!-- Speech bubble background -->
+        <Image Source="pack://application:,,,/Resources/images/SampleTextBox.png"
+               Stretch="Fill"/>
+        <!-- Text and choice options layered on top -->
+        <StackPanel Margin="15,15,10,10" VerticalAlignment="Top">
+            <TextBlock x:Name="SpeakText"
+                       TextWrapping="Wrap"
+                       Width="170"
+                       HorizontalAlignment="Left"
+                       FontSize="12"/>
+            <ItemsControl x:Name="ChoiceList" Margin="0,8,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Label}"
+                                   TextWrapping="Wrap"
+                                   Width="165"
+                                   HorizontalAlignment="Left"
+                                   FontSize="12"
+                                   Margin="0,3,0,0"
+                                   Cursor="Hand"
+                                   Tag="{Binding BehaviorName}"
+                                   MouseLeftButtonUp="Choice_Click"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -1,0 +1,17 @@
+{
+    "imageUsed": null,
+    "statements": null,
+    "actTime": -1,
+    "stmtChains": [
+        ["Just testing this.", "Don't mind me.", "Really, don't."],
+        ["Oh, it's another test.", "Just go ahead and stop looking."]
+    ],
+    "timeChains": [
+        [3, 3, 3],
+        [3, 5]
+    ],
+    "imgChains": [
+        ["speak.png", null, null],
+        ["speak.png", null]
+    ]
+}

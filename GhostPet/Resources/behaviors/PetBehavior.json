@@ -1,0 +1,10 @@
+{
+    "imageUsed": "pet.png",
+    "statements": [
+        "Hey, don't do that, $NAME$!",
+        "Hey, quit it!",
+        "I wish you wouldn't do that."
+    ],
+    "actTime": 3,
+    "PetStrokes": 250
+}
